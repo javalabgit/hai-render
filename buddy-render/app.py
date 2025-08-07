@@ -25,6 +25,14 @@ app.secret_key = 'your-secret-key-here'  # Change this to a random secret key
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
+import os
+import logging
+
+# Disable LiteLLM logging to prevent API key exposure
+os.environ["LITELLM_LOG"] = "ERROR"
+logging.getLogger("LiteLLM").setLevel(logging.ERROR)
+logging.getLogger("httpx").setLevel(logging.ERROR)
+
 # Database setup
 def init_db():
     conn = sqlite3.connect('eduaccess.db')
@@ -729,7 +737,7 @@ def process():
         #from vectordb import add_summary
 
         # inside your /process route
-        add_summary(cutsummary, session['user_id'], filename)
+        #add_summary(cutsummary, session['user_id'], filename)
 
         # 🔊 Generate audio
         tts = gTTS(text=cutsummary, lang=gtts_lang)
@@ -2323,6 +2331,7 @@ def run_code():
 
 if __name__ == '__main__':
     app.run(debug=False,host='0.0.0.0')
+
 
 
 
