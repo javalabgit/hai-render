@@ -13,6 +13,8 @@ reportlab
 beautifulsoup4
 markdown
 gunicorn
-
+reportlab
 python-multipart
+beautifulsoup
+lxml
 
