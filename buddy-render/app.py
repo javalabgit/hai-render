@@ -136,7 +136,7 @@ from crewai import Agent, Task, Crew, LLM
 from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
-from fastapi.middleware.cors import CORSMiddleware
+#from fastapi.middleware.cors import CORSMiddleware
 
 # Optional: enable CORS if needed
 # app.add_middleware(
@@ -2323,4 +2323,5 @@ def run_code():
 
 if __name__ == '__main__':
     app.run(debug=False,host='0.0.0.0')
+
 
