@@ -15,6 +15,7 @@ markdown
 gunicorn
 reportlab
 python-multipart
-beautifulsoup
+beautifulsoup4
 lxml
+crewai-tools
 
