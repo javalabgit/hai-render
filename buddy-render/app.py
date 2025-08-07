@@ -550,7 +550,7 @@ def summarize_with_gemini(content, lang='English'):
         agent=agent
     )
 
-        crew = Crew(agents=[agent], tasks=[task])
+        crew = Crew(agents=[agent], tasks=[task],verbose=False )
 
     # Run analysis - no inputs needed since content is in task description
         result = crew.kickoff()
@@ -726,7 +726,7 @@ def process():
         # 🧠 Summarize
         summary = summarize_with_gemini(content, selected_lang)
         cutsummary = clean_hell_markup(summary)
-        from vectordb import add_summary
+        #from vectordb import add_summary
 
         # inside your /process route
         add_summary(cutsummary, session['user_id'], filename)
@@ -856,7 +856,7 @@ Instructions:
             agents=[agent], 
             tasks=[task],
             memory=False,  # Enables short-term, long-term, and entity memory
-            verbose=True
+            verbose=False
         )
         
         result = crew.kickoff()
@@ -1174,7 +1174,7 @@ def submit_assessment():
     crew = Crew(
         agents=[assessment_evaluator],
         tasks=[feedback_task],
-        verbose=True
+        verbose=False
     )
     
     try:
@@ -1374,7 +1374,7 @@ video_analyst = Agent(
     You provide accurate, informative answers based solely on the video content. You maintain 
     context from previous questions in the conversation and reference timestamps when relevant.""",
     llm=gemini_llm,
-    verbose=True
+    verbose=False
 )
 
 @app.route('/ask_video', methods=['POST'])
@@ -1924,7 +1924,7 @@ def generate_ai_notes():
             goal="Create comprehensive, well-structured educational notes based on user requirements",
             backstory="You are an expert educator and note-taking specialist who creates professional, educational content that helps students learn effectively.",
             llm=llm,
-            verbose=True
+            verbose=False
         )
         
         # Create the task
@@ -2323,5 +2323,6 @@ def run_code():
 
 if __name__ == '__main__':
     app.run(debug=False,host='0.0.0.0')
+
 
 
