@@ -1,0 +1,6 @@
+env: python
+build:
+  environment:
+    pythonVersion: 3.11.9
+  command: pip install -r requirements.txt
+start: gunicorn app:app  # or whatever your actual start command is
