@@ -33,21 +33,41 @@ os.environ["LITELLM_LOG"] = "ERROR"
 logging.getLogger("LiteLLM").setLevel(logging.ERROR)
 logging.getLogger("httpx").setLevel(logging.ERROR)
 
+import psycopg2
+from psycopg2 import sql
+
+def post_db():
+    # Use environment variable for Render’s Postgres connection URL
+    
+    DATABASE_URL = os.getenv("DATABASE_URL")
+
+    pgconn = psycopg2.connect(DATABASE_URL)
+    pgcursor = pgconn.cursor()
+
+    # Users table
+    pgcursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(255) UNIQUE NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    pgconn.commit()
+    pgcursor.close()
+    pgconn.close()
+
+post_db()
+
 # Database setup
 def init_db():
     conn = sqlite3.connect('eduaccess.db')
     cursor = conn.cursor()
     
     # Users table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
+   
     
     # Activities table
     cursor.execute('''
@@ -605,7 +625,7 @@ def login():
     password = data.get('password')
     
     conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+    user = pgconn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
     conn.close()
     
     if user and check_password_hash(user['password_hash'], password):
@@ -765,32 +785,27 @@ r_list=[]
 user_context={}
 
 # ✅ Route: Ask AI questions
+conversation_history = []  # Store conversation pairs
+
 @app.route('/ask', methods=['POST'])
 def ask():
+    global conversation_history  # Declare as global to modify
+    
     if 'user_id' not in session:
         return jsonify({'error': 'Not logged in'}), 401
     
     data = request.get_json()
-    #question = data.get('question', '')
     context = data.get('context', '')
-    
     question = data.get('question', '')
-    user=session['username']
-    #relevant_summaries = search_summary(question,user)
+    user = session['username']
     
-    #context_chunks = [s['summary'] for s in relevant_summaries]
-    #context = "\n".join(context_chunks[:3])  # use top 3 relevant chunks max
-
-    #print(f"This is contect in ask(){context}")
-    list.append(question)
+    # Create user context from last 3 conversations
+    user_context = {
+        "recent_conversations": conversation_history[-3:] if conversation_history else []
+    }
     
-    user_context={"user":{"role":"user","message":list},"ai_system":{"role":"system","response":r_list}}
     prompt = f"""
-You are a friendly and knowledgeable professor-like AI who helps users understand theoretical concepts clearly and patiently. 
-Your role is to explain ideas in a way that is easy to grasp, using relatable examples or analogies when appropriate. 
-If the user expresses confusion or asks a question, take into account their explanation and address it thoroughly.
-
-Explain the concept’s purpose or core idea in simple, accessible terms.
+You are a friendly and knowledgeable professor-like AI who helps users understand theoretical concepts clearly and patiently.
 
 Use the following information to answer the question:
 
@@ -800,8 +815,8 @@ Use the following information to answer the question:
 🧠 Question:
 {question}
 
-💬 User's Recent Conversation History (for context and continuity):
-{user_context}
+💬 Recent Conversation History (last 3 conversations):
+{user_context['recent_conversations']}
 
 Break down the concept into understandable parts.
 
@@ -813,28 +828,7 @@ If the user asks for a youtube video, video explanationn or user query contains 
 YouTube_search: user topic to be searched on youtube goes here
 """
 
-
-    #try:
-        # model = genai.GenerativeModel('gemini-2.0-flash')
-        # response = model.generate_content(prompt)
-        
-        # answer = response.text.strip() if response else 'Sorry, I couldn\'t understand that.'
-        # #print(answer)
-        # if 'Youtube_search:' in answer:
-        #     query = answer.split('Youtube_search:')[1].strip()
-        #     ai_videos = search_videos(query)
-        #     return ai_videos
-
-        # r_list.append(answer)
-        
-        # add_activity(session['user_id'], 'ai_question', f'Asked: {question[:50]}...')
-        
-        # return jsonify({'answer': answer})
-
     llm = LLM(model="gemini/gemini-2.0-flash", temperature=0.7)
-    
-    sumresult = data.get('summary', '')
-    
 
     try:
         agent = Agent(
@@ -849,6 +843,7 @@ YouTube_search: user topic to be searched on youtube goes here
 
 📚 Context: {context}
 🧠 Question: {question}
+ Conversation_History : {user_context}
 
 Instructions:
 - Use previous conversation context if relevant
@@ -859,29 +854,40 @@ Instructions:
             agent=agent
         )
 
-        # Enable memory for conversation history
         crew = Crew(
             agents=[agent], 
             tasks=[task],
-            memory=False,  # Enables short-term, long-term, and entity memory
+            memory=False,
             verbose=False
         )
         
         result = crew.kickoff()
-        add_activity(session['user_id'], 'ai_question', f'Asked: {question[:50]}...')
         answer = str(result)
+        
+        # Save the conversation pair
+        conversation_pair = {
+            "question": question,
+            "answer": answer,
+            # "timestamp": datetime.now().isoformat()  # Optional: add timestamp
+        }
+        
+        conversation_history.append(conversation_pair)
+        
+        # Keep only last 3 conversations
+        if len(conversation_history) > 3:
+            conversation_history.pop(0)  # Remove oldest conversation
+        
+        add_activity(session['user_id'], 'ai_question', f'Asked: {question[:50]}...')
+        
         if 'YouTube_search:' in answer:
             query = answer.split('YouTube_search:')[1].strip()
-            
             ai_videos = search_videos(query)
             return ai_videos
         
         return jsonify({'answer': answer})
         
-
     except Exception as e:
-        print("❌ Error generating answer:", e)
-        return jsonify({'answer': 'Sorry, there was an error processing your question.'})
+        return jsonify({'error': str(e)}), 500
 
 # ✅ Route: Download audio
 @app.route('/download/audio')
@@ -2331,6 +2337,7 @@ def run_code():
 
 if __name__ == '__main__':
     app.run(debug=False,host='0.0.0.0')
+
 
 
 
