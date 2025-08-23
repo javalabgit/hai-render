@@ -628,22 +628,20 @@ def index():
 def auth():
     return render_template('auth.html')
 
+
+#new postgres datyabase code
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
-    
-    # conn = get_db_connection()
-    # user = pgconn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
 
     conn = get_pg_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
     user = cursor.fetchone()
-
     conn.close()
-    
+
     if user and check_password_hash(user['password_hash'], password):
         session['user_id'] = user['id']
         session['username'] = user['username']
@@ -653,12 +651,56 @@ def login():
     else:
         return jsonify({'success': False, 'message': 'Invalid email or password'})
 
+
 @app.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
+
+    conn = get_pg_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM users WHERE email = %s OR username = %s', (email, username))
+    existing_user = cursor.fetchone()
+
+    if existing_user:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Username or email already exists'})
+
+    password_hash = generate_password_hash(password)
+    cursor.execute(
+        'INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id',
+        (username, email, password_hash)
+    )
+    user_id = cursor.fetchone()['id']
+    conn.commit()
+    conn.close()
+
+    session['user_id'] = user_id
+    session['username'] = username
+    session['email'] = email
+    add_activity(user_id, 'signup', 'User created account')
+
+    return jsonify({'success': True, 'message': 'Account created successfully'})
+
+
+# @app.route('/login', methods=['POST'])
+# def login():
+#     data = request.get_json()
+#     email = data.get('email')
+#     password = data.get('password')
+    
+    # conn = get_db_connection()
+    # user = pgconn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+
+
+# @app.route('/signup', methods=['POST'])
+# def signup():
+#     data = request.get_json()
+#     username = data.get('username')
+#     email = data.get('email')
+#     password = data.get('password')
     
     # conn = get_db_connection()
     # existing_user = conn.execute('SELECT id FROM users WHERE email = ? OR username = ?', 
@@ -676,31 +718,6 @@ def signup():
     # conn.commit()
     # conn.close()
 
-     conn = get_pg_connection()
-     cursor = conn.cursor()
-     cursor.execute('SELECT id FROM users WHERE email = %s OR username = %s', (email, username))
-     existing_user = cursor.fetchone()
-
-     if existing_user:
-        conn.close()
-        return jsonify({'success': False, 'message': 'Username or email already exists'})
-
-      password_hash = generate_password_hash(password)
-      cursor.execute(
-         'INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id',
-          (username, email, password_hash)
-        )
-      user_id = cursor.fetchone()['id']
-      conn.commit()
-      conn.close()
-
-    
-      session['user_id'] = user_id
-      session['username'] = username
-      session['email'] = email
-      add_activity(user_id, 'signup', 'User created account')
-    
-      return jsonify({'success': True, 'message': 'Account created successfully'})
 
 @app.route('/logout')
 def logout():
@@ -2376,6 +2393,7 @@ def run_code():
 
 if __name__ == '__main__':
     app.run(debug=False,host='0.0.0.0')
+
 
 
 
