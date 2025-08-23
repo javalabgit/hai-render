@@ -733,6 +733,9 @@ def search_videos(query=None):
     except Exception as e:
         return jsonify({'error': f'Search failed: {str(e)}'}), 500
 
+
+# Instantiate extractor (best to do it once, not per request)
+fast_extractor = FastDocumentExtractor(max_workers=4, enable_cache=True)
 # ✅ Route: Process upload
 @app.route('/process', methods=['POST'])
 def process():
@@ -749,7 +752,8 @@ def process():
         uploaded_file.save(file_path)
 
         # 🔍 Extract file content
-        content = extract_text(file_path)
+        # content = extract_text(file_path) #old
+        content = fast_extractor.extract_text(file_path)
 
         # 🧠 Summarize
         summary = summarize_with_gemini(content, selected_lang)
@@ -2337,6 +2341,7 @@ def run_code():
 
 if __name__ == '__main__':
     app.run(debug=False,host='0.0.0.0')
+
 
 
 
