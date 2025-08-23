@@ -18,5 +18,6 @@ python-multipart
 beautifulsoup4
 lxml
 crewai-tools
+psycopg2-binary
 
 
