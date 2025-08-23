@@ -115,6 +115,16 @@ def init_db():
 # Initialize database
 init_db()
 
+import psycopg2
+import psycopg2.extras
+
+def get_pg_connection():
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+    return conn
+
+
+
 def get_db_connection():
     conn = sqlite3.connect('eduaccess.db')
     conn.row_factory = sqlite3.Row
@@ -624,8 +634,14 @@ def login():
     email = data.get('email')
     password = data.get('password')
     
-    conn = get_db_connection()
-    user = pgconn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+    # conn = get_db_connection()
+    # user = pgconn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+
+    conn = get_pg_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+    user = cursor.fetchone()
+
     conn.close()
     
     if user and check_password_hash(user['password_hash'], password):
@@ -644,28 +660,47 @@ def signup():
     email = data.get('email')
     password = data.get('password')
     
-    conn = get_db_connection()
-    existing_user = conn.execute('SELECT id FROM users WHERE email = ? OR username = ?', 
-                                (email, username)).fetchone()
+    # conn = get_db_connection()
+    # existing_user = conn.execute('SELECT id FROM users WHERE email = ? OR username = ?', 
+    #                             (email, username)).fetchone()
     
-    if existing_user:
+    # if existing_user:
+    #     conn.close()
+    #     return jsonify({'success': False, 'message': 'Username or email already exists'})
+    
+    # password_hash = generate_password_hash(password)
+    # cursor = conn.cursor()
+    # cursor.execute('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
+    #                (username, email, password_hash))
+    # user_id = cursor.lastrowid
+    # conn.commit()
+    # conn.close()
+
+     conn = get_pg_connection()
+     cursor = conn.cursor()
+     cursor.execute('SELECT id FROM users WHERE email = %s OR username = %s', (email, username))
+     existing_user = cursor.fetchone()
+
+     if existing_user:
         conn.close()
         return jsonify({'success': False, 'message': 'Username or email already exists'})
+
+      password_hash = generate_password_hash(password)
+      cursor.execute(
+         'INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id',
+          (username, email, password_hash)
+        )
+      user_id = cursor.fetchone()['id']
+      conn.commit()
+      conn.close()
+
     
-    password_hash = generate_password_hash(password)
-    cursor = conn.cursor()
-    cursor.execute('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-                   (username, email, password_hash))
-    user_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
+      session['user_id'] = user_id
+      session['username'] = username
+      session['email'] = email
+      add_activity(user_id, 'signup', 'User created account')
     
-    session['user_id'] = user_id
-    session['username'] = username
-    session['email'] = email
-    add_activity(user_id, 'signup', 'User created account')
-    
-    return jsonify({'success': True, 'message': 'Account created successfully'})
+      return jsonify({'success': True, 'message': 'Account created successfully'})
 
 @app.route('/logout')
 def logout():
@@ -2341,6 +2376,7 @@ def run_code():
 
 if __name__ == '__main__':
     app.run(debug=False,host='0.0.0.0')
+
 
 
 
