@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>H.ai  - Login</title>
+    <title>H.ai - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -20,7 +20,7 @@
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 400px;
+            max-width: 450px;
             width: 100%;
         }
         .auth-header {
@@ -31,6 +31,37 @@
             color: #667eea;
             font-weight: bold;
             margin-bottom: 10px;
+        }
+        .role-selection {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .role-card {
+            flex: 1;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+        .role-card:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .role-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .role-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .role-card.selected .icon {
+            color: white;
         }
         .form-control {
             border-radius: 10px;
@@ -56,6 +87,10 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
+        .btn-auth:disabled {
+            opacity: 0.6;
+            transform: none;
+        }
         .toggle-form {
             text-align: center;
             color: #667eea;
@@ -65,6 +100,23 @@
         .alert {
             border-radius: 10px;
             margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .auth-container {
+                margin: 20px;
+                padding: 30px;
+            }
+            .role-selection {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .role-card {
+                padding: 15px;
+            }
+            .role-card .icon {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
@@ -77,10 +129,25 @@
 
         <div id="login-form">
             <h3 class="text-center mb-4">Welcome Back</h3>
+            
+            <div class="role-selection" id="login-role-selection">
+                <div class="role-card" data-role="student">
+                    <div class="icon"><i class="fas fa-user-graduate"></i></div>
+                    <h6>Student</h6>
+                    <small>Access courses & learn</small>
+                </div>
+                <div class="role-card" data-role="teacher">
+                    <div class="icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                    <h6>Teacher</h6>
+                    <small>Create & manage courses</small>
+                </div>
+            </div>
+
             <form id="loginForm">
                 <input type="email" class="form-control" placeholder="Email" required id="login-email">
                 <input type="password" class="form-control" placeholder="Password" required id="login-password">
-                <button type="submit" class="btn btn-auth">
+                <input type="hidden" id="login-role" value="">
+                <button type="submit" class="btn btn-auth" disabled id="login-btn">
                     <i class="fas fa-sign-in-alt"></i> Login
                 </button>
             </form>
@@ -89,12 +156,31 @@
 
         <div id="signup-form" style="display: none;">
             <h3 class="text-center mb-4">Create Account</h3>
+            
+            <div class="role-selection" id="signup-role-selection">
+                <div class="role-card" data-role="student">
+                    <div class="icon"><i class="fas fa-user-graduate"></i></div>
+                    <h6>Student</h6>
+                    <small>Join classes & learn</small>
+                </div>
+                <div class="role-card" data-role="teacher">
+                    <div class="icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                    <h6>Teacher</h6>
+                    <small>Create courses & teach</small>
+                </div>
+            </div>
+
             <form id="signupForm">
-                <input type="text" class="form-control" placeholder="Username" required id="signup-username">
+                <input type="text" class="form-control" placeholder="Full Name" required id="signup-username">
                 <input type="email" class="form-control" placeholder="Email" required id="signup-email">
                 <input type="password" class="form-control" placeholder="Password" required id="signup-password">
                 <input type="password" class="form-control" placeholder="Confirm Password" required id="signup-confirm">
-                <button type="submit" class="btn btn-auth">
+                <div id="teacher-fields" style="display: none;">
+                    <input type="text" class="form-control" placeholder="Institution/School Name" id="signup-institution">
+                    <input type="text" class="form-control" placeholder="Teaching Subject/Area" id="signup-subject">
+                </div>
+                <input type="hidden" id="signup-role" value="">
+                <button type="submit" class="btn btn-auth" disabled id="signup-btn">
                     <i class="fas fa-user-plus"></i> Sign Up
                 </button>
             </form>
@@ -106,6 +192,49 @@
 
     <script>
         let isLoginForm = true;
+        let selectedLoginRole = '';
+        let selectedSignupRole = '';
+
+        // Role selection handlers
+        document.getElementById('login-role-selection').addEventListener('click', function(e) {
+            const roleCard = e.target.closest('.role-card');
+            if (roleCard) {
+                // Remove selected class from all cards in login
+                document.querySelectorAll('#login-role-selection .role-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                
+                // Add selected class to clicked card
+                roleCard.classList.add('selected');
+                selectedLoginRole = roleCard.dataset.role;
+                document.getElementById('login-role').value = selectedLoginRole;
+                document.getElementById('login-btn').disabled = false;
+            }
+        });
+
+        document.getElementById('signup-role-selection').addEventListener('click', function(e) {
+            const roleCard = e.target.closest('.role-card');
+            if (roleCard) {
+                // Remove selected class from all cards in signup
+                document.querySelectorAll('#signup-role-selection .role-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                
+                // Add selected class to clicked card
+                roleCard.classList.add('selected');
+                selectedSignupRole = roleCard.dataset.role;
+                document.getElementById('signup-role').value = selectedSignupRole;
+                document.getElementById('signup-btn').disabled = false;
+                
+                // Show/hide teacher fields
+                const teacherFields = document.getElementById('teacher-fields');
+                if (selectedSignupRole === 'teacher') {
+                    teacherFields.style.display = 'block';
+                } else {
+                    teacherFields.style.display = 'none';
+                }
+            }
+        });
 
         function toggleForm() {
             const loginForm = document.getElementById('login-form');
@@ -141,12 +270,18 @@
 
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
+            const role = document.getElementById('login-role').value;
+
+            if (!role) {
+                showAlert('Please select your role (Student or Teacher)');
+                return;
+            }
 
             try {
                 const response = await fetch('/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email, password, role })
                 });
 
                 const data = await response.json();
@@ -169,9 +304,22 @@
             const email = document.getElementById('signup-email').value;
             const password = document.getElementById('signup-password').value;
             const confirmPassword = document.getElementById('signup-confirm').value;
+            const role = document.getElementById('signup-role').value;
+            const institution = document.getElementById('signup-institution').value;
+            const subject = document.getElementById('signup-subject').value;
+
+            if (!role) {
+                showAlert('Please select your role (Student or Teacher)');
+                return;
+            }
 
             if (password !== confirmPassword) {
                 showAlert('Passwords do not match');
+                return;
+            }
+
+            if (role === 'teacher' && (!institution || !subject)) {
+                showAlert('Please fill in all teacher information');
                 return;
             }
 
@@ -179,7 +327,14 @@
                 const response = await fetch('/signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, email, password })
+                    body: JSON.stringify({ 
+                        username, 
+                        email, 
+                        password, 
+                        role,
+                        institution: institution || null,
+                        subject: subject || null
+                    })
                 });
 
                 const data = await response.json();
