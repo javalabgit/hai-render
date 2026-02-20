@@ -7,6 +7,7 @@
 ## Overview
 
 **HAI Render** is a comprehensive AI-powered educational platform designed to revolutionize learning and teaching through intelligent document analysis, interactive question-answering, multimedia integration, and advanced classroom management. Built with cutting-edge artificial intelligence, HAI Render empowers both students and teachers to create dynamic, personalized learning experiences.
+![Alt text](images/home.png)
 
 ## 🎯 Key Features
 
@@ -18,6 +19,7 @@ Engage in intelligent conversations with your course materials and documents. Th
 - Track references to specific sections and pages
 - Generate summaries of complex documents
 - Extract key concepts and learning points
+  ![Alt text](images/multilang.png)
 
 ### 2. ❓ Question & Answer System
 A robust Q&A framework that facilitates learning through queries:
@@ -27,6 +29,7 @@ A robust Q&A framework that facilitates learning through queries:
 - Expert review capabilities
 - Knowledge base construction
 - Search and filtering by topic, difficulty, and relevance
+- ![Alt text](images/document-qa.png)
 
 ### 3. 🎥 YouTube Integration
 Seamlessly incorporate video content into your curriculum:
@@ -36,6 +39,7 @@ Seamlessly incorporate video content into your curriculum:
 - Timestamp-based bookmarking
 - Video-based assignments and learning activities
 - Content recommendation based on learning objectives
+  ![Alt text](images/video-caht.png)
 
 ### 4. 📋 Assignment Management
 Comprehensive assignment handling for structured learning:
@@ -66,6 +70,7 @@ A complete classroom management system powered by AI:
 - Resource sharing and organization
 - Attendance tracking (where applicable)
 - Real-time feedback and grading tools
+  ![Alt text](images/teacher-dashboard.png)
 
 ### 7. 👨‍🎓 Student Metrics & Analytics
 Advanced analytics to understand student performance:
@@ -86,6 +91,7 @@ Automatically generate educational content with AI:
 - Glossary of terms extraction
 - Practice problem generation based on learning objectives
 - Personalized learning paths and recommendations
+  ![Alt text](images/ai-notes.png)
 
 ## 🚀 Getting Started
 
