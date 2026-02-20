@@ -39,7 +39,7 @@ Seamlessly incorporate video content into your curriculum:
 - Timestamp-based bookmarking
 - Video-based assignments and learning activities
 - Content recommendation based on learning objectives
-  ![Alt text](images/video-caht.png)
+  ![Alt text](images/video-chat.png)
 
 ### 4. 📋 Assignment Management
 Comprehensive assignment handling for structured learning:
